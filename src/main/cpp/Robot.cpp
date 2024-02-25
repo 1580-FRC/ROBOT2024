@@ -257,6 +257,7 @@ void Robot::AutonomousPeriodic()
   // }/
   // else
   // {
+  const int TIME = 1500;
   frc::SmartDashboard::PutNumber("State", (int)this->parash);
   switch (parash)
   {
@@ -275,13 +276,21 @@ void Robot::AutonomousPeriodic()
     break;
   case MaslulParash::Shoot:
     // this->Shoot();
-    this->advanceAuto();
+    this->IntakeToShooter();
+    // this->advanceAuto();
     break;
   case MaslulParash::Forward:
-    this->MoveUntilDist(121);
+    this->IntakeOn();
+    this->MoveUntilDist(TIME);
+    // this->MoveUntilDist(121);
+    break;
+  case MaslulParash::Backward:
+    this->MoveUntilDist(TIME, true);
     break;
   case MaslulParash::Shoot2:
-    this->Shoot();
+    // this->Shoot();
+    this->IntakeToShooter();
+
     break;
   case MaslulParash::Turn:
   {
@@ -311,13 +320,39 @@ void Robot::AutonomousPeriodic()
     break;
   }
 
+  const double proximityLimit = 1200;
+  // if timer is enabled we are pushing to shooter
+  if(proximity.GetProximity() > proximityLimit && !timerEnabled)
+  {
+    this->IntakeOff();
+    // intakeOn = false;
+  }
   // }
 }
-bool Robot::MoveUntilDist(double distMax)
+void Robot::IntakeOn() {
+  intakeOn = true;
+  flexIntake.Set(PICKUP_POWER);
+}
+
+void Robot::IntakeToShooter() {
+  IntakeOn();
+  TimerMs(INTAKE_TO_SHOOTER_TIME);
+}
+
+void Robot::IntakeOff() {
+  intakeOn = false;
+  flexIntake.Set(0);
+}
+bool Robot::MoveUntilDist(double distMax, bool opposite)
 {
   // x0 + v0t + 0.5 * a * t^2
   // vMax * t
-  double time = 
+  this->TimerMs((int)distMax);
+
+  if (!timerEnabled) {
+    this->Move(0, 0, 1);
+    return true;
+  }
   // if (targetDetected())
   // {
   //   double distanceHyp = EstimateDistance();
@@ -331,13 +366,16 @@ bool Robot::MoveUntilDist(double distMax)
   //   if (curX > distMax)
   //   {
   //     this->advanceAuto();
+  //     this->Move(0, 0, 1);
   //     return true;
   //   }
   // }
 
-  // const double MUL = 0.1;
-
-  // this->Move(1, 1, MUL);
+  double MUL = 0.5;
+  if (opposite) {
+    MUL *= -1;
+  }
+  this->Move(1, 1, MUL);
 
   return false;
 }
@@ -363,8 +401,6 @@ void Robot::TeleopPeriodic()
   Move(rightStick.GetY(), leftStick.GetY(), sens);
 
   double armPower = -1;
-
-  double optimalPowerForIntake = 0.73;
 
   bool activateTest = false;
   bool asherFlag = false;
@@ -478,20 +514,14 @@ void Robot::TeleopPeriodic()
   // }else {
   //   flexPickup.Set(0.0);
   // }
-  const double PICKUP_POWER = 0.3;
   const int PICKUP_BUTTON_OUT = 5;
   double current = this->ArmAngle();
   const int PICKUP_BUTTON_IN = 6;
 
   /*
-  const double proximityLimit = 1200;
-  if(proximity.GetProximity() > proximityLimit)
-  {
-    intakeOn = false;
-    flexIntake.Set(0);
-    // intakeOn = false;
-  }
 
+
+  // toggle on
   if(xbox.GetRawButtonPressed(PICKUP_BUTTON_IN))
   {
     // intakePositionOn = true;
@@ -500,17 +530,18 @@ void Robot::TeleopPeriodic()
 
     if (intakeOn) {
       flexIntake.Set(PICKUP_POWER);
+      IntakeOn();
     }else {
-      flexIntake.Set(0);
+      IntakeOff();
     }
   }*/
   if (xbox.GetRawButtonPressed(PICKUP_BUTTON_IN))
   {
-    flexIntake.Set(PICKUP_POWER);
+    this->IntakeOn();
   }
   else if (xbox.GetRawButtonReleased(PICKUP_BUTTON_IN))
   {
-    flexIntake.Set(0);
+    this->IntakeOff();
   }
 
   // elif released for normal but i don't want noremal i want proximity

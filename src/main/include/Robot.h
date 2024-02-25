@@ -64,6 +64,7 @@ enum class MaslulParash {
   ArmDown,
   Shoot,
   Forward,
+  Backward,
   Shoot2,
   Turn,
   Forward2,
@@ -81,7 +82,7 @@ public:
   double GetDrivingSense();
   double GetRightSense();
   void Shoot();
-  bool MoveUntilDist(double dist);
+  bool MoveUntilDist(double dist, bool opposite= false);
   void AdvanceIfArm(double diff);
 
   void TimerMs(int t );
@@ -107,6 +108,9 @@ private:
   bool autoArm = false;
   bool intakePositionOn = false;
   bool intakeOn = false;
+  const double PICKUP_POWER = 0.3;
+  const int INTAKE_TO_SHOOTER_TIME = 1000;
+  const int TIME_TO_2 = 500;
 
   frc::Timer timer;
   bool timerEnabled = false;
@@ -118,6 +122,9 @@ private:
   frc::PIDController rotationPid{0.275, 0.675, 0.05};
   frc::PIDController armPid{0.05, 0.8, 0.05};
   void advanceAuto();
+  void IntakeOn();
+  void IntakeToShooter();
+  void IntakeOff();
 
   rev::CANSparkMax sparkyDrive1{1, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive2{2, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
