@@ -62,7 +62,6 @@ class EncoderLimit {
 enum class MaslulParash {
   ArmUp,
   ArmDown,
-  Warmup,
   Shoot,
   Forward,
   Shoot2,
@@ -115,7 +114,7 @@ private:
   std::chrono::steady_clock::time_point timerStart;
 
   double targetAngle = 0.0;
-  MaslulParash parash = MaslulParash::Shoot; 
+  MaslulParash parash = (MaslulParash)0; 
   frc::PIDController rotationPid{0.275, 0.675, 0.05};
   frc::PIDController armPid{0.05, 0.8, 0.05};
   void advanceAuto();

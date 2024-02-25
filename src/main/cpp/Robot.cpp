@@ -192,7 +192,7 @@ double Robot::GetRightSense()
  * if-else structure below with additional strings. If using the SendableChooser
  * make sure to add them to the chooser code above as well.
  */
-const double MAX_SHOOT = 0.5;
+const double MAX_SHOOT = 0.75;
 void Robot::AutonomousInit()
 {
   m_autoSelected = m_chooser.GetSelected();
@@ -269,12 +269,13 @@ void Robot::AutonomousPeriodic()
     break;
   }
   case MaslulParash::ArmDown:
+    this->Shoot();
     this->SetArming(RESTING_ARM_ANGLE);
     this->AdvanceIfArm(5);
-
     break;
   case MaslulParash::Shoot:
-    this->Shoot();
+    // this->Shoot();
+    this->advanceAuto();
     break;
   case MaslulParash::Forward:
     this->MoveUntilDist(121);
@@ -314,26 +315,29 @@ void Robot::AutonomousPeriodic()
 }
 bool Robot::MoveUntilDist(double distMax)
 {
-  if (targetDetected())
-  {
-    double distanceHyp = EstimateDistance();
-    double tx = LimelightHelpers::getTX();
+  // x0 + v0t + 0.5 * a * t^2
+  // vMax * t
+  double time = 
+  // if (targetDetected())
+  // {
+  //   double distanceHyp = EstimateDistance();
+  //   double tx = LimelightHelpers::getTX();
 
-    const double stageDisVeritcal = 5;
+  //   const double stageDisVeritcal = 5;
 
-    double curX = sqrt(distanceHyp * distanceHyp - stageDisVeritcal * stageDisVeritcal);
-    // calc angle
+  //   double curX = sqrt(distanceHyp * distanceHyp - stageDisVeritcal * stageDisVeritcal);
+  //   // calc angle
 
-    if (curX > distMax)
-    {
-      this->advanceAuto();
-      return true;
-    }
-  }
+  //   if (curX > distMax)
+  //   {
+  //     this->advanceAuto();
+  //     return true;
+  //   }
+  // }
 
-  const double MUL = 0.1;
+  // const double MUL = 0.1;
 
-  this->Move(1, 1, MUL);
+  // this->Move(1, 1, MUL);
 
   return false;
 }
