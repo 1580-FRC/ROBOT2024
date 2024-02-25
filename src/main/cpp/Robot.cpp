@@ -233,17 +233,22 @@ void Robot::AdvanceIfArm(double diff)
   }
 }
 
-void Robot::TimerMs(int t){
+void Robot::TimerMs(int t)
+{
   timerMs = t;
-  if (timerEnabled) {
+  if (timerEnabled)
+  {
     auto now = std::chrono::steady_clock::now();
 
     double diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - timerStart).count();
-    if (diff > timerMs) {
+    if (diff >= timerMs)
+    {
       timerEnabled = false;
       advanceAuto();
     }
-  }else {
+  }
+  else
+  {
     timerEnabled = true;
     timerStart = std::chrono::steady_clock::now();
   }
@@ -258,6 +263,7 @@ void Robot::AutonomousPeriodic()
   // else
   // {
   const int TIME = 1500;
+  const int TIME2 = 1500;
   frc::SmartDashboard::PutNumber("State", (int)this->parash);
   switch (parash)
   {
@@ -294,23 +300,29 @@ void Robot::AutonomousPeriodic()
     break;
   case MaslulParash::Turn:
   {
+    //57, 45.1 robot -> note
     const int offset = 3;
-    const double wantedAngle = 90;
+    // const double wantedAngle = 45;
+    const double wantedAngle = 51.647;
     this->SetRotating(wantedAngle);
 
-    // if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
+    if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
     {
-      // this->parash = (MaslulParash)((int)this->parash + 1);
+      this->advanceAuto();
     }
-
     // turn nahoi
-  }
-  break;
-  case MaslulParash::Forward2:
-    this->MoveUntilDist(10);
     break;
+  }
+  case MaslulParash::Forward2:
+    // hyp   70.5
+    this->MoveUntilDist(TIME2);
+    // should pickup
+    break;
+  case MaslulParash::Backward2:
+    this->MoveUntilDist(TIME2, true);
+  break;
   case MaslulParash::Shoot3:
-    this->Shoot();
+    this->IntakeToShooter();
     break;
   case MaslulParash::Forward3:
     this->MoveUntilDist(10);
@@ -320,26 +332,33 @@ void Robot::AutonomousPeriodic()
     break;
   }
 
-  const double proximityLimit = 1200;
-  // if timer is enabled we are pushing to shooter
-  if(proximity.GetProximity() > proximityLimit && !timerEnabled)
-  {
-    this->IntakeOff();
-    // intakeOn = false;
+    const double proximityLimit = 1200;
+    // if timer is enabled we are pushing to shooter
+    if (proximity.GetProximity() > proximityLimit && !timerEnabled)
+    {
+      this->IntakeOff();
+      // intakeOn = false;
+    }
+
+
+    // }
   }
-  // }
-}
-void Robot::IntakeOn() {
+
+
+void Robot::IntakeOn()
+{
   intakeOn = true;
   flexIntake.Set(PICKUP_POWER);
 }
 
-void Robot::IntakeToShooter() {
+void Robot::IntakeToShooter()
+{
   IntakeOn();
   TimerMs(INTAKE_TO_SHOOTER_TIME);
 }
 
-void Robot::IntakeOff() {
+void Robot::IntakeOff()
+{
   intakeOn = false;
   flexIntake.Set(0);
 }
@@ -349,10 +368,21 @@ bool Robot::MoveUntilDist(double distMax, bool opposite)
   // vMax * t
   this->TimerMs((int)distMax);
 
-  if (!timerEnabled) {
+  if (!timerEnabled)
+  {
     this->Move(0, 0, 1);
     return true;
   }
+
+  double MUL = 0.5;
+  if (opposite)
+  {
+    MUL *= -1;
+  }
+  this->Move(1, 1, MUL);
+
+  return false;
+
   // if (targetDetected())
   // {
   //   double distanceHyp = EstimateDistance();
@@ -370,14 +400,6 @@ bool Robot::MoveUntilDist(double distMax, bool opposite)
   //     return true;
   //   }
   // }
-
-  double MUL = 0.5;
-  if (opposite) {
-    MUL *= -1;
-  }
-  this->Move(1, 1, MUL);
-
-  return false;
 }
 
 void Robot::Shoot()
@@ -652,7 +674,8 @@ void Robot::Move(double right, double left, double sens)
 }
 void Robot::DisabledInit() {}
 
-void Robot::DisabledPeriodic() {}
+void Robot::
+    DisabledPeriodic() {}
 
 void Robot::TestInit() {}
 

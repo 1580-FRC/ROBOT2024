@@ -68,6 +68,7 @@ enum class MaslulParash {
   Shoot2,
   Turn,
   Forward2,
+  Backward2,
   // turn to speaker
   Shoot3,
   // turn bact to note
@@ -140,7 +141,7 @@ private:
   frc::Joystick xbox{2};
   
   bool simaFlag = false;
-  //AHRS gyro{frc::SerialPort::Port::kUSB};
+  AHRS gyro{frc::SerialPort::Port::kUSB};
   //rev::ColorSensorV3 colorSensor{ frc::I2C::Port::kOnboard};
 
 
