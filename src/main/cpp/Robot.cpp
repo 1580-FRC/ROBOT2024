@@ -23,9 +23,11 @@ void Robot::SetArmPow(double p)
 
 void Robot::RobotInit()
 {
+  // flexShoot.controller.SetSmartCurrentLimit(35);
   // armSparky2.SetInverted(true);
   // armSparky2.SetInverted(true);
   std::cout << "INIT!" << std::endl;
+  this->parash = MaslulParash::ArmUp;
 
   // Sets the error tolerance to 5, and the error derivative tolerance to 10 per second
   rotationPid.SetTolerance(5, 10);
@@ -81,6 +83,7 @@ double Robot::CalculatePower(double angle)
   // double power = -0.016 * angle + 1;
   double current = this->ArmAngle();
   double power = ConstantArmPowerAngle(current);
+  bool isAuto = this->timer.Get().value() <= 15;
 
   double angleDiffRatio = ((this->targetAngle - current) / 90);
   if (current < this->targetAngle && !simaFlag)
@@ -88,6 +91,10 @@ double Robot::CalculatePower(double angle)
     // UP
     // std::cout << "PLUS" << power << std::endl;
     power += 0.02 + 0.335 * angleDiffRatio;
+    if (isAuto) {
+      std::cout << "AUTO !!" << std::endl;
+      power += 0.105;
+    }
   }
   else if (this->ArmAngle() < 85 && !simaFlag)
   {
@@ -105,6 +112,7 @@ double Robot::CalculatePower(double angle)
   if (this->ArmAngle() < 10.0 && this->intakePositionOn)
   {
     power = 0;
+    autoArm = false;
   }
   // else {
   //   power -= 0.115;
@@ -134,38 +142,26 @@ void Robot::RobotPeriodic()
   this->flagToPass = false;
   this->didShot = false;
 
-  std::cout << EstimateDistance() << std::endl;
+  // std::cout << EstimateDistance() << std::endl;
 
   // std::cout << "ENCODER " << this->ArmAngle() << std::endl;
   //  std::cout << "ENCODER " << -1 * calculatePower(round(this->ArmAngle())) << std::endl;
 
-  // double yaw = gyro.GetYaw();
+  double yaw = gyro.GetYaw();
   frc::SmartDashboard::PutNumber("TV", LimelightHelpers::getTV());
   frc::SmartDashboard::PutNumber("Distancee", EstimateDistance());
   frc::SmartDashboard::PutNumber("Proximity", this->proximity.GetProximity());
   frc::SmartDashboard::PutNumber("Arm Angle", this->ArmAngle());
   frc::SmartDashboard::PutNumber("Drive Sens", this->GetDrivingSense());
-  // frc::SmartDashboard::PutNumber("Yaw", yaw);
-  // frc::SmartDashboard::PutNumber("Yaw Graph", yaw);
+  frc::SmartDashboard::PutNumber("Yaw", yaw);
+  frc::SmartDashboard::PutNumber("Yaw Graph", yaw);
   frc::SmartDashboard::PutBoolean("SIMA", simaFlag);
+  frc::SmartDashboard::PutBoolean("SHOOT POWER", xbox.GetRawAxis(SHOOT_AXIS));
+  frc::SmartDashboard::PutBoolean("NEG SHOOT POWER", xbox.GetRawAxis(REV_SHOOT_AXIS));
 
   if (autoArm)
   {
-    // if (std::abs(this->ArmAngle() - this->targetAngle) <= 3.0)
-    // {
-    //   autoArm = false;
-    //   this->SetArmPow(this->ConstantArmPower());
-    // }
-    // else
-    {
-      // double dpower = armPid.Calculate(this->ArmAngle());
-
-      // this->SetArmPow(std::clamp(dpower, ConstantArmPowerAngle(armPid.GetSetpoint()) - 0.12, 0.55));
-
       this->SetArmPow(this->CalculatePower(this->targetAngle));
-    }
-
-    // this->SetArmPow(std::clamp(dpower, ConstantArmPowerAngle(armPid.GetSetpoint()) - 0.12, 0.55));
   }
 }
 
@@ -201,7 +197,6 @@ void Robot::AutonomousInit()
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
   // warmupStart = std::chrono::steady_clock::now();
-  // flexShoot.Set(MAX_SHOOT);
   this->parash = MaslulParash::ArmUp;
 
   if (m_autoSelected == kAutoNameCustom)
@@ -227,7 +222,7 @@ void Robot::advanceAuto()
 
 void Robot::AdvanceIfArm(double diff)
 {
-  if (std::abs(this->targetAngle - this->ArmAngle() < diff))
+  if (std::abs(this->targetAngle - this->ArmAngle()) < diff)
   {
     this->advanceAuto();
   }
@@ -262,17 +257,25 @@ void Robot::AutonomousPeriodic()
   // }/
   // else
   // {
-  const int TIME = 1500;
-  const int TIME2 = 1500;
+  bool isAuto = this->timer.Get().value() <= 15;
+  if (!isAuto) {
+    this->flexShoot.Set(0);
+    return;
+  }
+
+
+  const int TIME = 3000;
+  const int TIME2 = 1300;
+  
   frc::SmartDashboard::PutNumber("State", (int)this->parash);
   switch (parash)
   {
   case MaslulParash::ArmUp:
   {
-    const double angle = 90;
-    this->SetArming(angle);
-    this->TimerMs(1000);
-    // this->AdvanceIfArm(angle - this->ArmAngle() - 1.5);
+    // this->SetArmPow(0.243);
+    // this->TimerMs(675);
+    this->SetArming(85);
+    this->AdvanceIfArm(10);
     break;
   }
   case MaslulParash::ArmDown:
@@ -280,75 +283,102 @@ void Robot::AutonomousPeriodic()
     this->SetArming(RESTING_ARM_ANGLE);
     this->AdvanceIfArm(5);
     break;
+  // case MaslulParash::Warmup:
+  //   this->TimerMs(500);0
+  //   break;
+  case MaslulParash::Wait:
+    this->TimerMs(1500);
+  break;
   case MaslulParash::Shoot:
     // this->Shoot();
     this->IntakeToShooter();
     // this->advanceAuto();
     break;
+  case MaslulParash::EnablePickup:
+    this->IntakeOn(true);
+    this->flexShoot.Set(0);
+    this->advanceAuto();
+    break;
   case MaslulParash::Forward:
-    this->IntakeOn();
-    this->MoveUntilDist(TIME);
+    this->MoveUntilDist(TIME, true);
     // this->MoveUntilDist(121);
     break;
+  case MaslulParash::WaitStop: 
+    this->Shoot();
+    this->TimerMs(1500);
+  break;
   case MaslulParash::Backward:
-    this->MoveUntilDist(TIME, true);
+    this->MoveUntilDist(TIME);
     break;
   case MaslulParash::Shoot2:
     // this->Shoot();
     this->IntakeToShooter();
 
     break;
+
   case MaslulParash::Turn:
   {
+    this->flexShoot.Set(0);
     //57, 45.1 robot -> note
-    const int offset = 3;
-    // const double wantedAngle = 45;
-    const double wantedAngle = 51.647;
-    this->SetRotating(wantedAngle);
+    // const int offset = 3;
+    // // const double wantedAngle = 45;
+    // const double wantedAngle = 51.647;
+    // // const double wantedAngle = 360 - 51.647;
+    // this->SetRotating(wantedAngle);
 
-    if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
-    {
-      this->advanceAuto();
-    }
+    // if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
+    // {
+    //   this->advanceAuto();
+    // }
     // turn nahoi
     break;
   }
-  case MaslulParash::Forward2:
-    // hyp   70.5
-    this->MoveUntilDist(TIME2);
-    // should pickup
-    break;
-  case MaslulParash::Backward2:
-    this->MoveUntilDist(TIME2, true);
-  break;
-  case MaslulParash::Shoot3:
-    this->IntakeToShooter();
-    break;
-  case MaslulParash::Forward3:
-    this->MoveUntilDist(10);
-    break;
-  case MaslulParash::Shoot4:
-    this->Shoot();
-    break;
+  // case MaslulParash::Forward2:
+  //   // hyp   70.5
+  //   this->MoveUntilDist(TIME2);
+  //   // should pickup
+  //   break;
+  // case MaslulParash::Backward2:
+  //   this->MoveUntilDist(TIME2, true);
+  // break;
+  // case MaslulParash::Shoot3:
+  //   this->IntakeToShooter();
+  //   break;
+  // case MaslulParash::Forward3:
+  //   this->MoveUntilDist(10);
+  //   break;
+  // case MaslulParash::Shoot4:
+  //   this->Shoot();
+  //   break;
   }
 
-    const double proximityLimit = 1200;
+    const double proximityLimit = 300;
     // if timer is enabled we are pushing to shooter
     if (proximity.GetProximity() > proximityLimit && !timerEnabled)
     {
       this->IntakeOff();
+      if (this->parash == MaslulParash::Forward) {
+        this->advanceAuto();
+      }
       // intakeOn = false;
     }
 
 
     // }
-  }
+}
 
 
-void Robot::IntakeOn()
+void Robot::IntakeOn(bool half)
 {
   intakeOn = true;
+
+if (half) {
+  flexIntake.Set(PICKUP_POWER / 2);
+
+}else { 
   flexIntake.Set(PICKUP_POWER);
+
+}
 }
 
 void Robot::IntakeToShooter()
@@ -371,10 +401,11 @@ bool Robot::MoveUntilDist(double distMax, bool opposite)
   if (!timerEnabled)
   {
     this->Move(0, 0, 1);
+    // this->advanceAuto();
     return true;
   }
 
-  double MUL = 0.5;
+  double MUL = 0.3;
   if (opposite)
   {
     MUL *= -1;
@@ -404,7 +435,7 @@ bool Robot::MoveUntilDist(double distMax, bool opposite)
 
 void Robot::Shoot()
 {
-  flexShoot.Set(MAX_SHOOT);
+  flexShoot.Set(-MAX_SHOOT);
 }
 
 double Robot::ConstantArmPower()
@@ -412,7 +443,10 @@ double Robot::ConstantArmPower()
   return ConstantArmPowerAngle(this->ArmAngle());
 }
 
-void Robot::TeleopInit() {}
+void Robot::TeleopInit() {
+  this->flexShoot.Set(0);
+  this->flexIntake.Set(0);
+}
 // std::
 
 void Robot::TeleopPeriodic()
@@ -536,9 +570,9 @@ void Robot::TeleopPeriodic()
   // }else {
   //   flexPickup.Set(0.0);
   // }
-  const int PICKUP_BUTTON_OUT = 5;
+  const int PICKUP_BUTTON_OUT = 6;
   double current = this->ArmAngle();
-  const int PICKUP_BUTTON_IN = 6;
+  const int PICKUP_BUTTON_IN = 5;
 
   /*
 
@@ -577,15 +611,21 @@ void Robot::TeleopPeriodic()
     flexIntake.Set(0);
   }
 
-  double shootPower = xbox.GetRawAxis(3);
-  if (shootPower)
+  double shootPower = xbox.GetRawAxis(SHOOT_AXIS);
+  double negShootPower = xbox.GetRawAxis(REV_SHOOT_AXIS);
+  if (shootPower > 0.0)
   {
     shootPower = std::min(shootPower, MAX_SHOOT);
     flexShoot.Set(-shootPower);
+  }else if (negShootPower > 0.0) {
+    negShootPower = std::min(negShootPower, MAX_SHOOT);
+    flexShoot.Set(negShootPower);
   }
   else
   {
     flexShoot.Set(0.0);
+
+    // flexShoot.controller.;
   }
 
   double offset = 3.5;
@@ -613,6 +653,8 @@ void Robot::TeleopPeriodic()
   //   pickupPower = std::max(pickupPower, 0.85);
   //   flexPickup.Set(pickupPower);
   // }
+
+
 }
 
 void Robot::SetRotating(double d)
@@ -634,37 +676,41 @@ void Robot::SetArming(double d)
   {
     intakePositionOn = false;
   }
+  // else {
+  //   intakePositionOn = true;
+  // }
 }
 
 double Robot::EstimateDistance()
 {
 
-  if (LimelightHelpers::getTA() > 8)
-  {
-    // std::shared_ptr<NetworkTable> table = nt::NetworkTableInstance::GetDefault().GetTable("limelight");
-    // double targetOffsetAngle_Vertical = table->GetNumber("ty",0.0);
-    double targetOffsetAngle_Vertical = LimelightHelpers::getTY();
+  // if (LimelightHelpers::getTA() > 8)
+  // {
+  //   // std::shared_ptr<NetworkTable> table = nt::NetworkTableInstance::GetDefault().GetTable("limelight");
+  //   // double targetOffsetAngle_Vertical = table->GetNumber("ty",0.0);
+  //   double targetOffsetAngle_Vertical = LimelightHelpers::getTY();
 
-    // how many degrees back is your limelight rotated from perfectly vertical?
-    double limelightMountAngleDegrees = 18.0;
+  //   // how many degrees back is your limelight rotated from perfectly vertical?
+  //   double limelightMountAngleDegrees = 18.0;
 
-    // distance from the center of the Limelight lens to the floor
-    double limelightLensHeightInches = 20.0;
+  //   // distance from the center of the Limelight lens to the floor
+  //   double limelightLensHeightInches = 20.0;
 
-    // distance from the target to the floor
-    double goalHeightInches = 60.0;
+  //   // distance from the target to the floor
+  //   double goalHeightInches = 60.0;
 
-    double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
-    double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+  //   double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+  //   double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
 
-    // calculate distance
-    double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / tan(angleToGoalRadians);
-    return distanceFromLimelightToGoalInches * 2.54;
-  }
+  //   // calculate distance
+  //   double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / tan(angleToGoalRadians);
+  //   return distanceFromLimelightToGoalInches * 2.54;
+  // }
   return -1.0;
 }
 void Robot::Move(double right, double left, double sens)
 {
+
   frc::SmartDashboard::PutNumber("Move Power", right * sens);
 
   sparkyDrive1.Set(-right * sens);

@@ -62,9 +62,14 @@ class EncoderLimit {
 enum class MaslulParash {
   ArmUp,
   ArmDown,
+  Wait,
+  // Warmup,
   Shoot,
+  EnablePickup,
   Forward,
+  WaitStop,
   Backward,
+  WarmUp,
   Shoot2,
   Turn,
   Forward2,
@@ -83,8 +88,10 @@ public:
   double GetDrivingSense();
   double GetRightSense();
   void Shoot();
-  bool MoveUntilDist(double dist, bool opposite= false);
+  bool MoveUntilDist(double dist, bool opposite = false);
   void AdvanceIfArm(double diff);
+  const int SHOOT_AXIS = 3;
+  const int REV_SHOOT_AXIS = 3;
 
   void TimerMs(int t );
   double ArmAngle();
@@ -109,7 +116,7 @@ private:
   bool autoArm = false;
   bool intakePositionOn = false;
   bool intakeOn = false;
-  const double PICKUP_POWER = 0.3;
+  const double PICKUP_POWER = 0.2;
   const int INTAKE_TO_SHOOTER_TIME = 1000;
   const int TIME_TO_2 = 500;
 
@@ -123,7 +130,7 @@ private:
   frc::PIDController rotationPid{0.275, 0.675, 0.05};
   frc::PIDController armPid{0.05, 0.8, 0.05};
   void advanceAuto();
-  void IntakeOn();
+  void IntakeOn(bool half = false);
   void IntakeToShooter();
   void IntakeOff();
 
