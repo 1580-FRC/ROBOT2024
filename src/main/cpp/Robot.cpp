@@ -41,8 +41,8 @@ void Robot::SetArmPow(double p)
   }
   else
   {
-    armVictor1.controller.SetVoltage(-voltage * cos(this->ArmAngle()) * 0.05);
-    armVictor2.controller.SetVoltage(-voltage * cos(this->ArmAngle()) * 0.05);
+    armVictor1.controller.SetVoltage(-voltage);
+    armVictor2.controller.SetVoltage(-voltage);
   }
   
 }
