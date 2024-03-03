@@ -7,10 +7,6 @@
 #include "LimelightHelpers.h"
 #include <string>
 #include <rev/CANSparkFlex.h>
-#include <frc/controller/ArmFeedforward.h>
-#include <frc/controller/SimpleMotorFeedforward.h>
-
-
 
 #include "frc/DigitalInput.h"
 #include <frc/TimedRobot.h>
@@ -48,7 +44,6 @@
 #include <rev/SparkAbsoluteEncoder.h>
 #include <frc/DutyCycleEncoder.h>
 #include <frc/controller/PIDController.h>
-#include <frc/controller/ProfiledPIDController.h>
 
 template <class T, double MAX, class... Args>
 class EncoderLimit {
@@ -133,41 +128,32 @@ private:
   double targetAngle = 0.0;
   MaslulParash parash = (MaslulParash)0; 
   frc::PIDController rotationPid{0.275, 0.675, 0.05};
+  frc::PIDController armPid{0.075, 0.8, 0.075};
   void advanceAuto();
   void IntakeOn(bool half = false);
   void IntakeToShooter();
   void IntakeOff();
-  
-  // frc::PIDController armPid{2, 0.8, 0.05};
-  frc::ProfiledPIDController<units::angle::degree> armPid{
-  0.1, 0.7, 0.01,
-  // max ~30 deg per sec
-  frc::TrapezoidProfile<units::angle::degree>::Constraints{units::angular_velocity::degrees_per_second_t{30}, units::angular_acceleration::degrees_per_second_squared_t{30}}};
-  
-  frc::ArmFeedforward armFeed{units::volt_t{0.75}, units::volt_t{ 2.4}, units::unit_t<frc::ArmFeedforward::kv_unit>{1.89}, units::unit_t<frc::ArmFeedforward::ka_unit>{0.15}};
-  
-  rev::CANSparkMax sparkyDrive1{1, rev::CANSparkLowLevel::MotorType::kBrushed};
-  rev::CANSparkMax sparkyDrive2{2, rev::CANSparkLowLevel::MotorType::kBrushed};
-  rev::CANSparkMax sparkyDrive3{3, rev::CANSparkLowLevel::MotorType::kBrushed};
-  rev::CANSparkMax sparkyDrive4{4, rev::CANSparkLowLevel::MotorType::kBrushed};
-  rev::CANSparkFlex flexShoot{9, rev::CANSparkLowLevel::MotorType::kBrushless};
-  rev::CANSparkFlex flexIntake{10, rev::CANSparkLowLevel::MotorType::kBrushless};
+
+  rev::CANSparkMax sparkyDrive1{1, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
+  rev::CANSparkMax sparkyDrive2{2, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
+  rev::CANSparkMax sparkyDrive3{3, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
+  rev::CANSparkMax sparkyDrive4{4, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
+  EncoderLimit<rev::CANSparkFlex, 0.85, int, rev::CANSparkLowLevel::MotorType> flexShoot{9, rev::CANSparkLowLevel::MotorType::kBrushless};
+  EncoderLimit<rev::CANSparkFlex, 0.85, int, rev::CANSparkLowLevel::MotorType> flexIntake{10, rev::CANSparkLowLevel::MotorType::kBrushless};
   EncoderLimit<frc::VictorSP, 0.85, int> armVictor1{1};
   EncoderLimit<frc::VictorSP, 0.85, int> armVictor2{0};
 
   frc::Joystick leftStick{0};
   frc::Joystick rightStick{1};
   frc::Joystick xbox{2};
-
-  double last_arm_pos = 0.0;
+  
   bool simaFlag = false;
   AHRS gyro{frc::SerialPort::Port::kUSB};
-  // frc::SimpleMotorFeedForward shooterFeedForward{};
   //rev::ColorSensorV3 colorSensor{ frc::I2C::Port::kOnboard};
 
 
   // rev::SparkAbsoluteEncoder encoder = armSparky.GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle);
-  frc::DutyCycleEncoder armEncoder{3};
+  frc::DutyCycleEncoder encoder{3};
 
   // rev::SparkMaxRelativeEncoder encoder = armSparky.GetEncoder(rev::SparkMaxRelativeEncoder::Type::kQuadrature);
 

@@ -9,37 +9,24 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <cmath>
 #include <networktables/NetworkTable.h>
-#include <rev/CANSparkBase.h>
 
 const double RESTING_ARM_ANGLE = 6.0;
 
-units::angle::radian_t DegToRad(double d) {
-  return units::angle::radian_t{d * M_PI / 180.0};
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
 }
 
 void Robot::SetArmPow(double p)
 {
-  // frc::SmartDashboard::PutNumber("Arm Power", p);
-  // p = -p;
+  // const auto LIMIT = 0.5;
+  auto dAngle = std::abs(this->targetAngle - this->ArmAngle()) / 90.0;
+  p = std::clamp(p,  ConstantArmPower()- 0.3 * dAngle, ConstantArmPower() + 0.9* dAngle);
+  frc::SmartDashboard::PutNumber("Arm Power", p);
+  p = -p;
 
-  // armVictor1.Set(p);
-  // armVictor2.Set(p);
-  // armEncoder.Get
-  // double velocity = (this->ArmAngle() - last_arm_pos) * (1000 / 20);
-  // last_arm_pos = this->ArmAngle();
-  // auto diff = std::abs(this->targetAngle - this->ArmAngle());
-  const double rad_per_sec = 0.523;
-
-  auto pid_vol = this->armPid.Calculate(units::angle::degree_t{this->ArmAngle()}, units::angle::degree_t{this->targetAngle});
-
-  units::voltage::volt_t voltage = armFeed.Calculate(DegToRad(this->armPid.GetSetpoint().position.value()), units::angular_velocity::radians_per_second_t{DegToRad(this->armPid.GetSetpoint().velocity.value()).value()}  /*sec*/);
-  
-  voltage += units::voltage::volt_t { pid_vol} ;
-
-  frc::SmartDashboard::PutNumber("Arm Voltage", voltage.value());
-  
-  armVictor1.controller.SetVoltage(-voltage);
-  armVictor2.controller.SetVoltage(-voltage); 
+// armVictor1.controller.SetInve
+  armVictor1.Set(p);
+  armVictor2.Set(p);
 }
 
 void Robot::RobotInit()
@@ -48,6 +35,10 @@ void Robot::RobotInit()
   // armSparky2.SetInverted(true);
   // armSparky2.SetInverted(true);
   std::cout << "INIT!" << std::endl;
+  this->parash = MaslulParash::ArmUp;
+  this->armPid.SetIntegratorRange(-5, 5);
+  this->armPid.Reset();
+  this->rotationPid.Reset();
 
   // Sets the error tolerance to 5, and the error derivative tolerance to 10 per second
   rotationPid.SetTolerance(5, 10);
@@ -57,11 +48,11 @@ void Robot::RobotInit()
   intakePositionOn = false;
   simaFlag = false;
 
-  // armPid.SetTolerance(5);
+  armPid.SetTolerance(5);
   // rotatingState = RotatingState::Idle;
   // armState = ArmState::Idle;
-  // armEncoder.SetPositionConversionFactor(360);  // degrees, absolute mode reports between 0 and 1, multiply by 360 and we have detected degrees
-  armEncoder.SetPositionOffset(130.0 / 360.0);
+  // encoder.SetPositionConversionFactor(360);  // degrees, absolute mode reports between 0 and 1, multiply by 360 and we have detected degrees
+  encoder.SetPositionOffset(130.0 / 360.0);
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
 
@@ -70,8 +61,8 @@ void Robot::RobotInit()
 
 double Robot::ArmAngle()
 {
-  const double offset = 315.79 + 7 + 185 - 60;
-  double sima = this->armEncoder.GetAbsolutePosition() * 360 - offset;
+  const double offset = 315.79 + 7 + 185 - 63;
+  double sima = this->encoder.GetAbsolutePosition() * 360 - offset;
   // return this->encoder.GetAbsolutePosition() * 360.0 - offset;
   if (sima < -1)
   {
@@ -105,29 +96,35 @@ double Robot::CalculatePower(double angle)
   double power = ConstantArmPowerAngle(current);
   bool isAuto = this->timer.Get().value() <= 15;
 
-  double angleDiffRatio = ((this->targetAngle - current) / 90);
-  if (current < this->targetAngle && !simaFlag)
-  {
-    // UP
-    // std::cout << "PLUS" << power << std::endl;
-    power += 0.02 + 0.335 * angleDiffRatio;
-    if (isAuto) {
-      std::cout << "AUTO !!" << std::endl;
-      power += 0.105;
-    }
-  }
-  else if (this->ArmAngle() < 85 && !simaFlag)
-  {
-    // 0.155
-    power -= 0.05 - 0.05 * angleDiffRatio;
-    // power = std::max(power, ConstantArmPowerAngle(current));
-    // power = std::max(power, ConstantArmP)
-    // power -= 0.055 - 0.9 * angleDiffRatio;
-  }
-  else if (this->ArmAngle() > 90 && simaFlag)
-  {
-    power = -0.45 * (sin(this->ArmAngle() / 180.0 * M_PI));
-  }
+  // double angleDiffRatio = ((this->targetAngle - current) / 90);
+  // if (current < this->targetAngle && !simaFlag)
+  // {
+  //   // UP
+  //   // std::cout << "PLUS" << power << std::endl;
+  //   power += 0.02 + 0.08 * angleDiffRatio;
+  //   if (isAuto) {
+  //     std::cout << "AUTO !!" << std::endl;
+  //     power += 0.105;
+  //   }
+  // }
+  // else if (this->ArmAngle() < 85 && !simaFlag)
+  // {
+  //   // 0.155
+  //   power -= 0.05 - 0.05 * angleDiffRatio;
+  //   // power = std::max(power, ConstantArmPowerAngle(current));
+  //   // power = std::max(power, ConstantArmP)
+  //   // power -= 0.055 - 0.9 * angleDiffRatio;
+  // }
+  // else if (this->ArmAngle() > 90 && simaFlag)
+  // {
+  //   power = -0.45 * (sin(this->ArmAngle() / 180.0 * M_PI));
+  // }
+
+  double pid_power =  this->armPid.Calculate(this->ArmAngle());
+  frc::SmartDashboard::PutNumber("PID Power", pid_power);
+  double arm_power = this->ConstantArmPower() + pid_power;
+  power = arm_power;
+
 
   if (this->ArmAngle() < 10.0 && this->intakePositionOn)
   {
@@ -174,17 +171,19 @@ void Robot::RobotPeriodic()
   frc::SmartDashboard::PutNumber("Arm Angle", this->ArmAngle());
   frc::SmartDashboard::PutNumber("Drive Sens", this->GetDrivingSense());
   frc::SmartDashboard::PutNumber("Right Sens", this->GetRightSense());
+  frc::SmartDashboard::PutNumber("Constant Arm Power", this->ConstantArmPower());
   frc::SmartDashboard::PutNumber("Yaw", yaw);
   frc::SmartDashboard::PutNumber("Yaw Graph", yaw);
   frc::SmartDashboard::PutBoolean("SIMA", simaFlag);
   frc::SmartDashboard::PutBoolean("SHOOT POWER", xbox.GetRawAxis(SHOOT_AXIS));
   frc::SmartDashboard::PutBoolean("NEG SHOOT POWER", xbox.GetRawAxis(REV_SHOOT_AXIS));
 
-  // if (autoArm)
-  // {
-  //     this->SetArmPow(this->CalculatePower(this->targetAngle));
-  // }
-  this->SetArming(GetRightSense() * 100);
+  this->SetArming(this->GetRightSense() * 100);
+  
+  if (autoArm)
+  {
+      this->SetArmPow(this->CalculatePower(this->targetAngle));
+  }
 }
 
 double Robot::GetDrivingSense()
@@ -317,7 +316,7 @@ void Robot::AutonomousPeriodic()
     // this->advanceAuto();
     break;
   case MaslulParash::EnablePickup:
-    this->IntakeOn();
+    this->IntakeOn(true);
     this->flexShoot.Set(0);
     this->advanceAuto();
     break;
@@ -393,9 +392,8 @@ void Robot::AutonomousPeriodic()
 void Robot::IntakeOn(bool half)
 {
   intakeOn = true;
-  bool isAuto = this->timer.Get().value() <= 15;
 
-if (isAuto) {
+if (half) {
   flexIntake.Set(PICKUP_POWER / 2);
 
 }else { 
@@ -458,11 +456,7 @@ bool Robot::MoveUntilDist(double distMax, bool opposite)
 
 void Robot::Shoot()
 {
-  auto shooterRpm = flexShoot.GetEncoder(
-                                        rev::SparkRelativeEncoder::Type::kQuadrature,
-                                     7168).GetVelocity();
-  frc::SmartDashboard::PutNumber("Shooter RPM", shooterRpm);
-  // flexShoot.Set(-MAX_SHOOT);
+  flexShoot.Set(-MAX_SHOOT);
 }
 
 double Robot::ConstantArmPower()
@@ -473,7 +467,6 @@ double Robot::ConstantArmPower()
 void Robot::TeleopInit() {
   this->flexShoot.Set(0);
   this->flexIntake.Set(0);
-  this->SetArming(RESTING_ARM_ANGLE);
 }
 // std::
 
@@ -655,8 +648,6 @@ void Robot::TeleopPeriodic()
 
     // flexShoot.controller.;
   }
-  //leftMotor.SetVoltage(feedforward.Calculate(leftVelocity));
-
 
   double offset = 3.5;
 
@@ -683,8 +674,6 @@ void Robot::TeleopPeriodic()
   //   pickupPower = std::max(pickupPower, 0.85);
   //   flexPickup.Set(pickupPower);
   // }
-
-
 }
 
 void Robot::SetRotating(double d)
@@ -700,7 +689,8 @@ void Robot::SetArming(double d)
   this->autoArm = true;
   targetAngle = d;
   frc::SmartDashboard::PutNumber("Target Angle", d);
-  // armPid.SetSetpoint(d);
+  armPid.SetSetpoint(targetAngle);
+  armPid.Reset();
 
   if (targetAngle != RESTING_ARM_ANGLE)
   {
