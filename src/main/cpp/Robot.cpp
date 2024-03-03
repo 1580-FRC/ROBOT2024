@@ -28,13 +28,11 @@ void Robot::SetArmPow(double p)
   // double velocity = (this->ArmAngle() - last_arm_pos) * (1000 / 20);
   // last_arm_pos = this->ArmAngle();
   // auto diff = std::abs(this->targetAngle - this->ArmAngle());
-  auto target_rad = DegToRad(this->targetAngle);
-  auto angle_rad = DegToRad(this->ArmAngle());
   const double rad_per_sec = 0.523;
 
-  auto pid_vol = this->armPid.Calculate(angle_rad, target_rad);
+  auto pid_vol = this->armPid.Calculate(units::angle::degree_t{this->ArmAngle()}, units::angle::degree_t{this->targetAngle});
 
-  units::voltage::volt_t voltage = armFeed.Calculate(this->armPid.GetSetpoint().position, this->armPid.GetSetpoint().velocity  /*sec*/);
+  units::voltage::volt_t voltage = armFeed.Calculate(DegToRad(this->armPid.GetSetpoint().position.value()), units::angular_velocity::radians_per_second_t{DegToRad(this->armPid.GetSetpoint().velocity.value()).value()}  /*sec*/);
   
   voltage += units::voltage::volt_t { pid_vol} ;
 
@@ -72,7 +70,7 @@ void Robot::RobotInit()
 
 double Robot::ArmAngle()
 {
-  const double offset = 315.79 + 7 + 185;
+  const double offset = 315.79 + 7 + 185 - 60;
   double sima = this->armEncoder.GetAbsolutePosition() * 360 - offset;
   // return this->encoder.GetAbsolutePosition() * 360.0 - offset;
   if (sima < -1)

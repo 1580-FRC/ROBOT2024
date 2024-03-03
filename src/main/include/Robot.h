@@ -139,12 +139,12 @@ private:
   void IntakeOff();
   
   // frc::PIDController armPid{2, 0.8, 0.05};
-  frc::ProfiledPIDController<units::angle::radian> armPid{
-  0.05, 0.7, 0.01,
+  frc::ProfiledPIDController<units::angle::degree> armPid{
+  0.1, 0.7, 0.01,
   // max ~30 deg per sec
-  frc::TrapezoidProfile<units::angle::radian>::Constraints{units::angular_velocity::radians_per_second_t{0.5}, units::angular_acceleration::radians_per_second_squared_t{1}}};
+  frc::TrapezoidProfile<units::angle::degree>::Constraints{units::angular_velocity::degrees_per_second_t{30}, units::angular_acceleration::degrees_per_second_squared_t{30}}};
   
-  frc::ArmFeedforward armFeed{units::volt_t{1.5}, units::volt_t{ 2.4}, units::unit_t<frc::ArmFeedforward::kv_unit>{1.89}, units::unit_t<frc::ArmFeedforward::ka_unit>{0.15}};
+  frc::ArmFeedforward armFeed{units::volt_t{0.75}, units::volt_t{ 2.4}, units::unit_t<frc::ArmFeedforward::kv_unit>{1.89}, units::unit_t<frc::ArmFeedforward::ka_unit>{0.15}};
   
   rev::CANSparkMax sparkyDrive1{1, rev::CANSparkLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive2{2, rev::CANSparkLowLevel::MotorType::kBrushed};
