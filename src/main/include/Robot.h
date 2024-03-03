@@ -48,6 +48,7 @@
 #include <rev/SparkAbsoluteEncoder.h>
 #include <frc/DutyCycleEncoder.h>
 #include <frc/controller/PIDController.h>
+#include <frc/controller/ProfiledPIDController.h>
 
 template <class T, double MAX, class... Args>
 class EncoderLimit {
@@ -138,7 +139,13 @@ private:
   void IntakeOff();
   
   // frc::PIDController armPid{2, 0.8, 0.05};
+  frc::ProfiledPIDController<units::angle::radian> armPid{
+  0.05, 0.7, 0.01,
+  // max ~30 deg per sec
+  frc::TrapezoidProfile<units::angle::radian>::Constraints{units::angular_velocity::radians_per_second_t{0.5}, units::angular_acceleration::radians_per_second_squared_t{1}}};
+  
   frc::ArmFeedforward armFeed{units::volt_t{1.5}, units::volt_t{ 2.4}, units::unit_t<frc::ArmFeedforward::kv_unit>{1.89}, units::unit_t<frc::ArmFeedforward::ka_unit>{0.15}};
+  
   rev::CANSparkMax sparkyDrive1{1, rev::CANSparkLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive2{2, rev::CANSparkLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive3{3, rev::CANSparkLowLevel::MotorType::kBrushed};

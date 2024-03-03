@@ -29,22 +29,19 @@ void Robot::SetArmPow(double p)
   // last_arm_pos = this->ArmAngle();
   // auto diff = std::abs(this->targetAngle - this->ArmAngle());
   auto target_rad = DegToRad(this->targetAngle);
+  auto angle_rad = DegToRad(this->ArmAngle());
   const double rad_per_sec = 0.523;
-  units::voltage::volt_t voltage = armFeed.Calculate(units::angle::radian_t{target_rad}, units::angular_velocity::radians_per_second_t{rad_per_sec}  /*sec*/);
+
+  auto pid_vol = this->armPid.Calculate(angle_rad, target_rad);
+
+  units::voltage::volt_t voltage = armFeed.Calculate(this->armPid.GetSetpoint().position, this->armPid.GetSetpoint().velocity  /*sec*/);
   
+  voltage += units::voltage::volt_t { pid_vol} ;
+
   frc::SmartDashboard::PutNumber("Arm Voltage", voltage.value());
   
-  if(this->ArmAngle() < 10)
-  {
-    armVictor1.controller.SetVoltage(-voltage);
-    armVictor2.controller.SetVoltage(-voltage); 
-  }
-  else
-  {
-    armVictor1.controller.SetVoltage(-voltage);
-    armVictor2.controller.SetVoltage(-voltage);
-  }
-  
+  armVictor1.controller.SetVoltage(-voltage);
+  armVictor2.controller.SetVoltage(-voltage); 
 }
 
 void Robot::RobotInit()
