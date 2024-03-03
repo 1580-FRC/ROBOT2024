@@ -37,10 +37,11 @@ void Robot::RobotInit()
   std::cout << "INIT!" << std::endl;
   this->parash = MaslulParash::ArmUp;
   this->armPid.SetIntegratorRange(-5, 5);
+  armPid.SetTolerance(5);
   this->armPid.Reset();
-  this->rotationPid.Reset();
 
   // Sets the error tolerance to 5, and the error derivative tolerance to 10 per second
+  this->rotationPid.Reset();
   rotationPid.SetTolerance(5, 10);
   rotationPid.EnableContinuousInput(0, 360);
   isRotating = false;
@@ -48,7 +49,6 @@ void Robot::RobotInit()
   intakePositionOn = false;
   simaFlag = false;
 
-  armPid.SetTolerance(5);
   // rotatingState = RotatingState::Idle;
   // armState = ArmState::Idle;
   // encoder.SetPositionConversionFactor(360);  // degrees, absolute mode reports between 0 and 1, multiply by 360 and we have detected degrees
@@ -690,15 +690,15 @@ void Robot::SetArming(double d)
   targetAngle = d;
   frc::SmartDashboard::PutNumber("Target Angle", d);
   armPid.SetSetpoint(targetAngle);
-  armPid.Reset();
+  // armPid.Reset();
 
   if (targetAngle != RESTING_ARM_ANGLE)
   {
     intakePositionOn = false;
   }
-  // else {
-  //   intakePositionOn = true;
-  // }
+  else {
+    intakePositionOn = true;
+  }
 }
 
 double Robot::EstimateDistance()
