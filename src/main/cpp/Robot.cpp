@@ -10,7 +10,6 @@
 #include <cmath>
 #include <networktables/NetworkTable.h>
 
-const double RESTING_ARM_ANGLE = 6.0;
 
 void Robot::SetArmPow(double p)
 {
@@ -47,6 +46,7 @@ void Robot::RobotInit()
 
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 }
+
 
 double Robot::ArmAngle()
 {
@@ -90,7 +90,7 @@ double Robot::CalculatePower(double angle)
   {
     // UP
     // std::cout << "PLUS" << power << std::endl;
-    power += 0.01 + 0.2 * angleDiffRatio;
+    power += 0.01 + 0.15 * angleDiffRatio;
     if (isAuto) {
       std::cout << "AUTO !!" << std::endl;
       power += 0.105;
@@ -114,10 +114,10 @@ double Robot::CalculatePower(double angle)
   }
   else if (this->ArmAngle() > 90 && simaFlag)
   {
-    power = -0.45 * (sin(this->ArmAngle() / 180.0 * M_PI));
+    power = -0.53 * (sin(this->ArmAngle() / 180.0 * M_PI));
   }
 
-  if (this->ArmAngle() < 10.0 && this->intakePositionOn)
+  if (this->ArmAngle() < 20 && this->intakePositionOn)
   {
     power = 0;
     autoArm = false;
@@ -171,6 +171,18 @@ void Robot::RobotPeriodic()
   {
       this->SetArmPow(this->CalculatePower(this->targetAngle));
   }
+
+   if (isRotating)
+  {
+    double power = rotationPid.Calculate(yaw);
+
+    Move(power, -power, 0.075);
+  }
+
+#ifdef DIST_SENSOR
+  distCm = dist_sensor.GetValue() * 5/frc::RobotController::GetVoltage5V() * 0.125;
+#endif
+  frc::SmartDashboard::PutNumber("DIST sensor", distCm);
 }
 
 double Robot::GetDrivingSense()
@@ -196,9 +208,14 @@ double Robot::GetRightSense()
  * if-else structure below with additional strings. If using the SendableChooser
  * make sure to add them to the chooser code above as well.
  */
-const double MAX_SHOOT = 0.75;
+const double MAX_SHOOT = 0.65;
 void Robot::AutonomousInit()
 {
+  this->runner = new ActionRunner(GetPlanCenter(*this));
+
+  #ifdef DIST_SENSOR
+  ultrasonic_trigger_pin.Set(1);
+  #endif
   m_autoSelected = m_chooser.GetSelected();
   // m_autoSelected = SmartDashboard::GetString("Auto Selector",
   //     kAutoNameDefault);
@@ -259,6 +276,7 @@ void Robot::TimerMs(int t)
 
 void Robot::AutonomousPeriodic()
 {
+  this->runner->Update((Robot&)*this);
   // if (m_autoSelected == kAutoNameCustom)
   // {
   //   // Custom Auto goes here
@@ -361,10 +379,11 @@ void Robot::AutonomousPeriodic()
   }
 
     const double proximityLimit = 300;
-    // if timer is enabled we are pushing to shooter
-    if (proximity.GetProximity() > proximityLimit && !timerEnabled)
+    // if loaded we are pushing to shooter
+    if (proximity.GetProximity() > proximityLimit && !loaded)
     {
       this->IntakeOff();
+      loaded = true;
       if (this->parash == MaslulParash::Forward) {
         this->advanceAuto();
       }
@@ -392,7 +411,6 @@ if (half) {
 void Robot::IntakeToShooter()
 {
   IntakeOn();
-  TimerMs(INTAKE_TO_SHOOTER_TIME);
 }
 
 void Robot::IntakeOff()
@@ -557,12 +575,6 @@ void Robot::TeleopPeriodic()
     isRotating = false;
   }
 
-  if (isRotating)
-  {
-    // double power = rotationPid.Calculate(yaw);
-
-    // Move(power, -power, 0.075);
-  }
 
   // this->SetArmPow(this->GetRightSense());
   // hold arm
@@ -684,9 +696,9 @@ void Robot::SetArming(double d)
   {
     intakePositionOn = false;
   }
-  // else {
-  //   intakePositionOn = true;
-  // }
+  else {
+    intakePositionOn = true;
+  }
 }
 
 double Robot::EstimateDistance()

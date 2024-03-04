@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "Runner.h"
 #include "LimelightHelpers.h"
 #include <string>
 #include <rev/CANSparkFlex.h>
@@ -44,6 +45,12 @@
 #include <rev/SparkAbsoluteEncoder.h>
 #include <frc/DutyCycleEncoder.h>
 #include <frc/controller/PIDController.h>
+#include "frc/RobotController.h"
+#include <frc/AnalogInput.h>
+#include <frc/DigitalOutput.h>
+#include <Runner.h>
+#include <Actions.h>
+#include <plans.h>
 
 template <class T, double MAX, class... Args>
 class EncoderLimit {
@@ -58,6 +65,7 @@ class EncoderLimit {
     this->controller.Set(d);
   }
 };
+const double RESTING_ARM_ANGLE = 6.0;
 
 enum class MaslulParash {
   ArmUp,
@@ -82,6 +90,8 @@ enum class MaslulParash {
   Shoot4,
 };
 
+#define DIST_SENSOR true
+
 class Robot : public frc::TimedRobot
 {
 public:
@@ -92,6 +102,13 @@ public:
   void AdvanceIfArm(double diff);
   const int SHOOT_AXIS = 3;
   const int REV_SHOOT_AXIS = 3;
+  double distCm = -1;
+
+  #ifdef DIST_SENSOR
+  frc::DigitalOutput ultrasonic_trigger_pin{0};
+  frc::AnalogInput dist_sensor{0};
+  #endif
+  ActionRunner* runner;
 
   void TimerMs(int t );
   double ArmAngle();
@@ -109,6 +126,18 @@ public:
   void TestPeriodic() override;
   void SimulationInit() override;
   void SimulationPeriodic() override;
+  void Move(double right, double left, double sens);
+    void SetRotating(double angle);
+  void SetArming(double angle);
+  void IntakeToShooter();
+  void IntakeOff();
+  void IntakeOn(bool half = false);
+
+  AHRS gyro{frc::SerialPort::Port::kUSB};
+  bool loaded = true;
+  EncoderLimit<rev::CANSparkFlex, 0.85, int, rev::CANSparkLowLevel::MotorType> flexShoot{9, rev::CANSparkLowLevel::MotorType::kBrushless};
+
+
 private:
   // ArmState armState = ArmState::Idle;
   // RotatingState rotatingState = RotatingState::Idle;
@@ -130,15 +159,12 @@ private:
   frc::PIDController rotationPid{0.275, 0.675, 0.05};
   frc::PIDController armPid{0.075, 0.8, 0.075};
   void advanceAuto();
-  void IntakeOn(bool half = false);
-  void IntakeToShooter();
-  void IntakeOff();
+  
 
   rev::CANSparkMax sparkyDrive1{1, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive2{2, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive3{3, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
   rev::CANSparkMax sparkyDrive4{4, rev::CANSparkMaxLowLevel::MotorType::kBrushed};
-  EncoderLimit<rev::CANSparkFlex, 0.85, int, rev::CANSparkLowLevel::MotorType> flexShoot{9, rev::CANSparkLowLevel::MotorType::kBrushless};
   EncoderLimit<rev::CANSparkFlex, 0.85, int, rev::CANSparkLowLevel::MotorType> flexIntake{10, rev::CANSparkLowLevel::MotorType::kBrushless};
   EncoderLimit<frc::VictorSP, 0.85, int> armVictor1{1};
   EncoderLimit<frc::VictorSP, 0.85, int> armVictor2{0};
@@ -148,7 +174,6 @@ private:
   frc::Joystick xbox{2};
   
   bool simaFlag = false;
-  AHRS gyro{frc::SerialPort::Port::kUSB};
   //rev::ColorSensorV3 colorSensor{ frc::I2C::Port::kOnboard};
 
 
@@ -157,10 +182,8 @@ private:
 
   // rev::SparkMaxRelativeEncoder encoder = armSparky.GetEncoder(rev::SparkMaxRelativeEncoder::Type::kQuadrature);
 
-  void Move(double right, double left, double sens);
   double CalculatePower(double angle);
-  void SetRotating(double angle);
-  void SetArming(double angle);
+
   double EstimateDistance();
 
   frc::SendableChooser<std::string> m_chooser;
