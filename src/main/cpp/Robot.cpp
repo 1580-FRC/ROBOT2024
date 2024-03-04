@@ -276,7 +276,9 @@ void Robot::TimerMs(int t)
 
 void Robot::AutonomousPeriodic()
 {
-  this->runner->Update((Robot&)*this);
+  if (this->runner != nullptr){
+    this->runner->Update((Robot&)*this);
+  }
   // if (m_autoSelected == kAutoNameCustom)
   // {
   //   // Custom Auto goes here
@@ -294,89 +296,89 @@ void Robot::AutonomousPeriodic()
   const int TIME2 = 1300;
   
   frc::SmartDashboard::PutNumber("State", (int)this->parash);
-  switch (parash)
-  {
-  case MaslulParash::ArmUp:
-  {
-    // this->SetArmPow(0.243);
-    // this->TimerMs(675);
-    this->SetArming(85);
-    this->AdvanceIfArm(10);
-    break;
-  }
-  case MaslulParash::ArmDown:
-    this->Shoot();
-    this->SetArming(RESTING_ARM_ANGLE);
-    this->AdvanceIfArm(5);
-    break;
-  // case MaslulParash::Warmup:
-  //   this->TimerMs(500);0
+  // switch (parash)
+  // {
+  // case MaslulParash::ArmUp:
+  // {
+  //   // this->SetArmPow(0.243);
+  //   // this->TimerMs(675);
+  //   this->SetArming(85);
+  //   this->AdvanceIfArm(10);
   //   break;
-  case MaslulParash::Wait:
-    this->TimerMs(1500);
-  break;
-  case MaslulParash::Shoot:
-    // this->Shoot();
-    this->IntakeToShooter();
-    // this->advanceAuto();
-    break;
-  case MaslulParash::EnablePickup:
-    this->IntakeOn(true);
-    this->flexShoot.Set(0);
-    this->advanceAuto();
-    break;
-  case MaslulParash::Forward:
-    this->MoveUntilDist(TIME, true);
-    // this->MoveUntilDist(121);
-    break;
-  case MaslulParash::WaitStop: 
-    this->Shoot();
-    this->TimerMs(1500);
-  break;
-  case MaslulParash::Backward:
-    this->MoveUntilDist(TIME);
-    break;
-  case MaslulParash::Shoot2:
-    // this->Shoot();
-    this->IntakeToShooter();
-
-    break;
-
-  case MaslulParash::Turn:
-  {
-    this->flexShoot.Set(0);
-    //57, 45.1 robot -> note
-    // const int offset = 3;
-    // // const double wantedAngle = 45;
-    // const double wantedAngle = 51.647;
-    // // const double wantedAngle = 360 - 51.647;
-    // this->SetRotating(wantedAngle);
-
-    // if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
-    // {
-    //   this->advanceAuto();
-    // }
-    // turn nahoi
-    break;
-  }
-  // case MaslulParash::Forward2:
-  //   // hyp   70.5
-  //   this->MoveUntilDist(TIME2);
-  //   // should pickup
-  //   break;
-  // case MaslulParash::Backward2:
-  //   this->MoveUntilDist(TIME2, true);
-  // break;
-  // case MaslulParash::Shoot3:
-  //   this->IntakeToShooter();
-  //   break;
-  // case MaslulParash::Forward3:
-  //   this->MoveUntilDist(10);
-  //   break;
-  // case MaslulParash::Shoot4:
+  // }
+  // case MaslulParash::ArmDown:
   //   this->Shoot();
+  //   this->SetArming(RESTING_ARM_ANGLE);
+  //   this->AdvanceIfArm(5);
   //   break;
-  }
+  // // case MaslulParash::Warmup:
+  // //   this->TimerMs(500);0
+  // //   break;
+  // case MaslulParash::Wait:
+  //   this->TimerMs(1500);
+  // break;
+  // case MaslulParash::Shoot:
+  //   // this->Shoot();
+  //   this->IntakeToShooter();
+  //   // this->advanceAuto();
+  //   break;
+  // case MaslulParash::EnablePickup:
+  //   this->IntakeOn(true);
+  //   this->flexShoot.Set(0);
+  //   this->advanceAuto();
+  //   break;
+  // case MaslulParash::Forward:
+  //   this->MoveUntilDist(TIME, true);
+  //   // this->MoveUntilDist(121);
+  //   break;
+  // case MaslulParash::WaitStop: 
+  //   this->Shoot();
+  //   this->TimerMs(1500);
+  // break;
+  // case MaslulParash::Backward:
+  //   this->MoveUntilDist(TIME);
+  //   break;
+  // case MaslulParash::Shoot2:
+  //   // this->Shoot();
+  //   this->IntakeToShooter();
+
+  //   break;
+
+  // case MaslulParash::Turn:
+  // {
+  //   this->flexShoot.Set(0);
+  //   //57, 45.1 robot -> note
+  //   // const int offset = 3;
+  //   // // const double wantedAngle = 45;
+  //   // const double wantedAngle = 51.647;
+  //   // // const double wantedAngle = 360 - 51.647;
+  //   // this->SetRotating(wantedAngle);
+
+  //   // if (gyro.GetAngle() > wantedAngle - offset && gyro.GetAngle() < wantedAngle + offset)
+  //   // {
+  //   //   this->advanceAuto();
+  //   // }
+  //   // turn nahoi
+  //   break;
+  // }
+  // // case MaslulParash::Forward2:
+  // //   // hyp   70.5
+  // //   this->MoveUntilDist(TIME2);
+  // //   // should pickup
+  // //   break;
+  // // case MaslulParash::Backward2:
+  // //   this->MoveUntilDist(TIME2, true);
+  // // break;
+  // // case MaslulParash::Shoot3:
+  // //   this->IntakeToShooter();
+  // //   break;
+  // // case MaslulParash::Forward3:
+  // //   this->MoveUntilDist(10);
+  // //   break;
+  // // case MaslulParash::Shoot4:
+  // //   this->Shoot();
+  // //   break;
+  // }
 
     const double proximityLimit = 300;
     // if loaded we are pushing to shooter

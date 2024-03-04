@@ -105,10 +105,10 @@ public:
   double distCm = -1;
 
   #ifdef DIST_SENSOR
-  frc::DigitalOutput ultrasonic_trigger_pin{0};
+  frc::DigitalOutput ultrasonic_trigger_pin{4};
   frc::AnalogInput dist_sensor{0};
   #endif
-  ActionRunner* runner;
+  ActionRunner* runner = nullptr;
 
   void TimerMs(int t );
   double ArmAngle();
